@@ -23,6 +23,7 @@ training:
   learning_rate: 3.0e-5
   batch_size: 8                               # 16 windows of 384 word pieces may not fit in a T4's memory
   gradient_accumulation_steps: 2              # 8 x 2 = 16 windows per weight update, as for DistilBERT
+  group_by_length: true                       # batch windows of similar length: about half the work (trial: ~10 h)
   num_epochs: 2
   max_steps: -1
   warmup_ratio: 0.1

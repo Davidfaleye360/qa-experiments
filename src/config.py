@@ -45,6 +45,9 @@ class TrainingConfig:
     # Windows per weight update = batch_size x gradient_accumulation_steps. A bigger model can run out of GPU
     # memory at batch_size 16; batch_size 8 with 2 accumulation steps gives the same update from two halves.
     gradient_accumulation_steps: int = 1
+    # Put windows of similar length in the same batch (shuffled in large groups first), so batches need
+    # less padding. Saves about half the work on SQuAD; the model sees the same data.
+    group_by_length: bool = False
     num_epochs: int = 2
     max_steps: int = -1        # -1 = train for num_epochs; a positive number stops after that many steps
     warmup_ratio: float = 0.1

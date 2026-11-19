@@ -21,8 +21,13 @@ QUESTION_SEQ_ID = 0
 CONTEXT_SEQ_ID = 1
 
 
-def _tokenize(examples: dict[str, list], tokenizer, max_length: int, stride: int):
-    """Tokenize question + passage pairs into overlapping, padded windows."""
+def _tokenize(examples: dict[str, list], tokenizer, max_length: int, stride: int, pad: bool = True):
+    """Tokenize question + passage pairs into overlapping windows.
+
+    pad=True fills every window up to max_length. Training uses pad=False: most windows are far
+    shorter than 384 word pieces (the median is about 150), and padding them all to 384 more than
+    doubles the work. The training batches are then padded only to their own longest window.
+    """
     # Some SQuAD questions start with spaces, which waste tokens and can break truncation.
     questions = [q.strip() for q in examples["question"]]
     enc = tokenizer(
@@ -33,7 +38,7 @@ def _tokenize(examples: dict[str, list], tokenizer, max_length: int, stride: int
         stride=stride,                   # tokens shared by neighbouring windows
         return_overflowing_tokens=True,  # long passages -> several windows
         return_offsets_mapping=True,     # (start_char, end_char) for every token
-        padding="max_length",
+        padding="max_length" if pad else False,
     )
     trim_leading_spaces(enc, examples["context"])
     return enc
@@ -109,8 +114,11 @@ def prepare_train_features(
     max_length: int = 384,
     stride: int = 128,
     keep_mapping: bool = False,
+    pad: bool = True,
 ) -> Any:
     """Batched function for `Dataset.map`: adds start_positions and end_positions.
+
+    pad=False leaves each window at its real length (see _tokenize); the labels are the same.
 
     Example:
         train = raw["train"].map(
@@ -121,7 +129,7 @@ def prepare_train_features(
     keep_mapping=True also returns offset_mapping and overflow_to_sample_mapping,
     which the sanity checks use to decode labels. Leave it False for training.
     """
-    enc = _tokenize(examples, tokenizer, max_length, stride)
+    enc = _tokenize(examples, tokenizer, max_length, stride, pad=pad)
     sample_map = enc.pop("overflow_to_sample_mapping")
     offset_mapping = enc.pop("offset_mapping")
 

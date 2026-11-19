@@ -52,6 +52,7 @@ def test_training_arguments_come_from_the_config():
     assert args.learning_rate == pytest.approx(training.learning_rate)
     assert args.per_device_train_batch_size == training.batch_size
     assert args.gradient_accumulation_steps == training.gradient_accumulation_steps == 1
+    assert args.group_by_length is training.group_by_length is False
     assert args.num_train_epochs == training.num_epochs
     assert args.max_steps == -1                       # full run: stop by epochs, not steps
     assert args.warmup_ratio == pytest.approx(training.warmup_ratio)

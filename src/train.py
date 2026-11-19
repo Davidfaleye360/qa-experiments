@@ -31,7 +31,7 @@ import torch
 from transformers import (
     AutoModelForQuestionAnswering,
     AutoTokenizer,
-    DefaultDataCollator,
+    DataCollatorWithPadding,
     Trainer,
     TrainingArguments,
     set_seed,
@@ -55,7 +55,8 @@ def make_train_features(raw_train, tokenizer, pre: PreprocessingConfig):
         prepare_train_features,
         batched=True,
         remove_columns=raw_train.column_names,  # the model only needs the token columns
-        fn_kwargs={"tokenizer": tokenizer, "max_length": pre.max_length, "stride": pre.doc_stride},
+        # pad=False: windows keep their real length, and each batch is padded to its longest window.
+        fn_kwargs={"tokenizer": tokenizer, "max_length": pre.max_length, "stride": pre.doc_stride, "pad": False},
         desc="Preprocessing",
     )
 
@@ -67,6 +68,7 @@ def build_training_arguments(training: TrainingConfig, fp16: bool, use_cpu: bool
         learning_rate=training.learning_rate,
         per_device_train_batch_size=training.batch_size,
         gradient_accumulation_steps=training.gradient_accumulation_steps,
+        group_by_length=training.group_by_length,  # batch windows of similar length: less padding
         num_train_epochs=training.num_epochs,
         max_steps=training.max_steps,        # -1 means "use num_train_epochs"
         warmup_ratio=training.warmup_ratio,  # learning rate climbs for the first 10% of steps, then falls to 0
@@ -123,7 +125,8 @@ def run_training(model, tokenizer, train_features, cfg: Config, resume: bool = T
         model=model,
         args=build_training_arguments(training, fp16, use_cpu),
         train_dataset=train_features,
-        data_collator=DefaultDataCollator(),  # stacks examples into batches; they are already padded
+        # Pads each batch only to its longest window (rounded up to a multiple of 8, which GPUs handle fastest).
+        data_collator=DataCollatorWithPadding(tokenizer, pad_to_multiple_of=8),
         processing_class=tokenizer,           # saved next to the model, so a checkpoint is self-contained
     )
 

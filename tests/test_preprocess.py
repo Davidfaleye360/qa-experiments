@@ -185,3 +185,14 @@ def test_trim_leading_spaces_changes_nothing_for_bert_style_offsets(tokenizer):
     for (start, end), seq in zip(enc["offset_mapping"][0], enc.sequence_ids(0)):
         if seq == 1:
             assert not context[start].isspace()
+
+
+def test_unpadded_training_windows_have_the_same_labels_and_real_lengths(tokenizer):
+    rows = [make_example("a", "When did Curie win the Chemistry prize?", CONTEXT_CURIE, "1911"),
+            make_example("b", "Where was Curie born?", CONTEXT_CURIE, None)]
+    padded = prepare_train_features(to_batch(rows), tokenizer, max_length=64, stride=16)
+    unpadded = prepare_train_features(to_batch(rows), tokenizer, max_length=64, stride=16, pad=False)
+    assert unpadded["start_positions"] == padded["start_positions"]
+    assert unpadded["end_positions"] == padded["end_positions"]
+    assert all(len(ids) == 64 for ids in padded["input_ids"])
+    assert all(len(ids) == sum(mask) < 64 for ids, mask in zip(unpadded["input_ids"], unpadded["attention_mask"]))

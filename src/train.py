@@ -45,8 +45,9 @@ from src.preprocess import prepare_train_features
 SUMMARY_FILE = "train_summary.json"
 
 # Not uploaded to the Hub: checkpoints hold the optimizer state and are only useful for resuming
-# (about 800 MB each), and training_args.bin is a pickled Python object nobody needs to download.
-HUB_IGNORE = ["checkpoint-*", "training_args.bin"]
+# (about 800 MB each), training_args.bin is a pickled Python object nobody needs to download, and
+# teacher_scores_* is distillation's saved teacher output (about 300 MB), which only training uses.
+HUB_IGNORE = ["checkpoint-*", "training_args.bin", "teacher_scores_*", "teacher_scores_*/*"]
 
 
 def make_train_features(raw_train, tokenizer, pre: PreprocessingConfig):

@@ -169,6 +169,8 @@ def test_push_to_hub_uploads_the_final_model_but_not_the_checkpoints(tokenizer, 
     for needed in ("model.safetensors", "config.json", "vocab.txt", SUMMARY_FILE):
         assert needed in top_level and uploaded(needed)
     assert upload["ignore_patterns"] == HUB_IGNORE
+    # Distillation's saved teacher scores stay on Drive too.
+    assert not uploaded("teacher_scores_130319/data-00000-of-00001.arrow")
 
 
 def test_the_project_config_names_a_hub_model():

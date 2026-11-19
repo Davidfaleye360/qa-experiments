@@ -1,0 +1,27 @@
+{
+  "model": "Ingsyling/distilbert-squad2-distilled",
+  "dataset": "rajpurkar/squad_v2 (validation)",
+  "questions": 11873,
+  "windows": 12134,
+  "device": "mps",
+  "predict_seconds": 140.3,
+  "settings": {
+    "max_length": 384,
+    "doc_stride": 128,
+    "n_best": 20,
+    "max_answer_length": 30,
+    "null_threshold": 0.0
+  },
+  "metrics": {
+    "exact": 66.64,
+    "f1": 69.76,
+    "total": 11873,
+    "HasAns_exact": 66.87,
+    "HasAns_f1": 73.12,
+    "HasAns_total": 5928,
+    "NoAns_exact": 66.41,
+    "NoAns_f1": 66.41,
+    "NoAns_total": 5945
+  },
+  "matches_official_metric": true
+}

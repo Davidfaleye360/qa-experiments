@@ -20,7 +20,7 @@ dev set. Most of what follows in this README describes that starting point.
 | Experiment | Idea | Status |
 | --- | --- | --- |
 | A stronger pretrained model | Fine-tune `microsoft/deberta-v3-base` with the same pipeline. Its authors report about 88 F1 on SQuAD 2.0. Settings: [configs/deberta.yaml](configs/deberta.yaml); run it with [notebooks/05_train_deberta_colab.ipynb](https://colab.research.google.com/github/Davidfaleye360/qa-experiments/blob/main/notebooks/05_train_deberta_colab.ipynb). | **Done: 84.86 EM / 87.69 F1, beats RoBERTa by 4.8 F1.** Model: [Ingsyling/deberta-v3-squad2](https://huggingface.co/Ingsyling/deberta-v3-squad2) |
-| Distillation | Train the small DistilBERT again, learning from our DeBERTa-v3's scores for every possible start and end as well as from the correct answers, to close part of the gap at the same size and speed. The two models cut text into different word pieces, so the scores are lined up by character position ([src/distill.py](src/distill.py)). Settings: [configs/distill.yaml](configs/distill.yaml); run it with [notebooks/06_distill_colab.ipynb](https://colab.research.google.com/github/Davidfaleye360/qa-experiments/blob/main/notebooks/06_distill_colab.ipynb). | Code ready, waiting for the Colab trial run |
+| Distillation | Train the small DistilBERT again, learning from our DeBERTa-v3's scores for every possible start and end as well as from the correct answers, to close part of the gap at the same size and speed. The two models cut text into different word pieces, so the scores are lined up by character position ([src/distill.py](src/distill.py)). Settings: [configs/distill.yaml](configs/distill.yaml); run it with [notebooks/06_distill_colab.ipynb](https://colab.research.google.com/github/Davidfaleye360/qa-experiments/blob/main/notebooks/06_distill_colab.ipynb). | **Done: 66.64 EM / 69.76 F1, +2.4 F1 over our first DistilBERT at the same size.** Model: [Ingsyling/distilbert-squad2-distilled](https://huggingface.co/Ingsyling/distilbert-squad2-distilled) |
 
 Models trained here get their own names on the Hugging Face Hub, so the group's
 [Ingsyling/distilbert-squad2](https://huggingface.co/Ingsyling/distilbert-squad2) stays unchanged.
@@ -51,6 +51,7 @@ CPU time is the median time to answer one dev question end to end on an Apple M2
 | Model | EM | F1 | HasAns F1 | NoAns F1 | Size | CPU time / question |
 | --- | --- | --- | --- | --- | --- | --- |
 | DistilBERT (ours) | 64.14 | 67.38 | 72.17 | 62.59 | 266 MB (66 M parameters) | 27 ms |
+| DistilBERT distilled from DeBERTa-v3 (ours, experiment 2) | 66.64 | 69.76 | 73.12 | 66.41 | 266 MB (66 M parameters) | 27 ms (same architecture) |
 | RoBERTa (deepset) | 79.90 | 82.91 | 84.01 | 81.82 | 496 MB (124 M parameters) | 53 ms |
 | DeBERTa-v3 (ours, experiment 1) | **84.86** | **87.69** | **89.02** | **86.36** | 735 MB (184 M parameters) | 85 ms |
 
@@ -68,6 +69,16 @@ answerable (+5.0) and unanswerable (+4.5) questions, and 20.3 points ahead of ou
 about 88 F1. Scoring the uploaded model on an M2 laptop gave exactly the same numbers as the Colab run.
 The price is size and speed: it is 1.5 times RoBERTa's size and takes 1.6 times as long per question
 (85 ms against 53 ms on a laptop CPU).
+
+Experiment 2, [Ingsyling/distilbert-squad2-distilled](https://huggingface.co/Ingsyling/distilbert-squad2-distilled),
+is our DistilBERT trained again with the same settings, except that half of its loss now compares it with
+DeBERTa-v3's scores for every start and end instead of only the correct answer
+([configs/distill.yaml](configs/distill.yaml); teacher scoring 17 min + training 38 min on a free Colab T4).
+Compared with our first DistilBERT it gains **+2.50 EM / +2.38 F1** (67.38 → 69.76). Most of the gain is in
+knowing when not to answer: unanswerable questions +3.8 (62.59 → 66.41), answerable questions +1.0 F1
+(72.17 → 73.12). It is the same model architecture, so it has the same size and speed. It closes 15% of the
+gap to RoBERTa (15.5 → 13.2 F1 points). Scoring the uploaded model on an M2 laptop gave exactly the same numbers
+as the Colab run. The CPU time is not measured separately: the network is identical to our first DistilBERT's.
 
 Fine-tuning is what gets it there: the same `distilbert-base-uncased` before our training scores 1.2 EM /
 4.6 F1 on the first 1,000 dev questions, against 64.2 / 67.7 for our model on the same questions.
@@ -255,6 +266,8 @@ qa-experiments/
     ├── long_documents.json                   # scores when the model reads whole articles
     ├── deberta-v3-squad2.json                # experiment 1: DeBERTa-v3's scores and predictions
     ├── deberta-v3-squad2_predictions.json
+    ├── distilbert-squad2-distilled.json      # experiment 2: the distilled DistilBERT's scores and predictions
+    ├── distilbert-squad2-distilled_predictions.json
     ├── efficiency_three_models.json          # experiment 1: size and CPU time, all three models
     ├── threshold_sweep_three_models.{json,png}  # experiment 1: threshold sweep, all three models
     ├── error_breakdown_three_models.json     # experiment 1: error analysis, all three models

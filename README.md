@@ -1,32 +1,36 @@
-# AI Question Answering System
+# QA experiments: pushing extractive question answering on SQuAD 2.0
 
-An extractive question answering system for CSCI 390 (Natural Language Processing and Applications, Dr. Qi Li).
-Given a passage and a question, the model highlights the words in the passage that answer it, or says
-**"no answer"** when the passage doesn't contain one.
+A personal continuation of a group course project. The goal here is to find out how far the score can be
+pushed, and in particular whether a model we fine-tune ourselves can beat the published
+[`deepset/roberta-base-squad2`](https://huggingface.co/deepset/roberta-base-squad2) (79.9 EM / 82.9 F1).
 
-We fine-tune [`distilbert-base-uncased`](https://huggingface.co/distilbert/distilbert-base-uncased) on
-[SQuAD 2.0](https://rajpurkar.github.io/SQuAD-explorer/) and compare it with the published
-[`deepset/roberta-base-squad2`](https://huggingface.co/deepset/roberta-base-squad2).
+## Where this comes from
 
-**Team:** David Faleye, Kosisochukwu Ogbuanya
+This repository starts from the CSCI 390 (Natural Language Processing and Applications, Dr. Qi Li) project
+by David Faleye and Kosisochukwu Ogbuanya:
+[Davidfaleye360/AI-Question-Answering-System](https://github.com/Davidfaleye360/AI-Question-Answering-System).
+That repository stays exactly as it was submitted. Everything up to and including commit `76b7db3` here is
+that group work (code, results, report and slides); the experiments below are David Faleye's own.
 
-## Status
+The group project fine-tuned `distilbert-base-uncased` and reached **64.1 EM / 67.4 F1** on the SQuAD 2.0
+dev set. Most of what follows in this README describes that starting point.
 
-| Week | Milestone | Status |
+## Experiments
+
+| Experiment | Idea | Status |
 | --- | --- | --- |
-| 1 | Pipeline works on a small sample | Done |
-| 2 | Model trained and scored | Done: 67.4 F1 on the dev set (target was 65+) |
-| 3 | Demo online | Demo done (run it from Colab or your computer); error analysis done |
-| 4 | Report and presentation | In progress: report ([PDF](report/report.pdf)) and slides ([PDF](slides/presentation.pdf)) drafted; rehearsal to do |
+| A stronger pretrained model | Fine-tune `microsoft/deberta-v3-base` with the same pipeline. Its authors report about 88 F1 on SQuAD 2.0. | Planned |
+| Distillation | Train the small DistilBERT to copy RoBERTa's scores, not only the correct answers, to close part of the gap at the same size. | Idea |
 
-See [TASKS.md](TASKS.md) for the full task list.
+Models trained here get their own names on the Hugging Face Hub, so the group's
+[Ingsyling/distilbert-squad2](https://huggingface.co/Ingsyling/distilbert-squad2) stays unchanged.
 
 ## Try the demo
 
 The demo is not hosted permanently, but anyone can start it in about two minutes:
 
 - **In the browser, nothing to install:** open
-  [notebooks/04_demo_colab.ipynb in Google Colab](https://colab.research.google.com/github/Davidfaleye360/AI-Question-Answering-System/blob/main/notebooks/04_demo_colab.ipynb)
+  [notebooks/04_demo_colab.ipynb in Google Colab](https://colab.research.google.com/github/Davidfaleye360/qa-experiments/blob/main/notebooks/04_demo_colab.ipynb)
   (needs a Google account), run its two code cells, and open the `gradio.live` link it prints.
 - **On your own computer:** follow "Getting started" below, then run `python app/app.py`.
 
@@ -112,7 +116,7 @@ so the scores on unanswerable questions are a lower bound. Numbers are in `resul
 ## Repository layout
 
 ```text
-AI-Question-Answering-System/
+qa-experiments/
 ├── README.md
 ├── LICENSE                     # MIT
 ├── TASKS.md                    # project task list
@@ -190,8 +194,8 @@ and run its first cell, which clones the repo and installs the requirements. Tra
 ### On your own computer
 
 ```bash
-git clone https://github.com/Davidfaleye360/AI-Question-Answering-System.git
-cd AI-Question-Answering-System
+git clone https://github.com/Davidfaleye360/qa-experiments.git
+cd qa-experiments
 python -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -r requirements.txt    # or requirements-lock.txt for the exact versions we used
@@ -217,7 +221,7 @@ python scripts/check_preprocessing.py --n-examples 2000
 ```
 
 **2. Train** (44 minutes on a Colab T4 GPU). Run sections 0 and 6 to 8 of
-[notebooks/02_train_colab.ipynb](https://colab.research.google.com/github/Davidfaleye360/AI-Question-Answering-System/blob/main/notebooks/02_train_colab.ipynb).
+[notebooks/02_train_colab.ipynb](https://colab.research.google.com/github/Davidfaleye360/qa-experiments/blob/main/notebooks/02_train_colab.ipynb).
 To upload the result to your own Hugging Face account, change `hub_model_id` in `configs/distilbert.yaml`
 and add a write token as the Colab secret `HF_TOKEN`; without `--push-to-hub` the model is only saved to
 the output folder. A new run should land within a few tenths of a point of ours, not on the exact digits,
@@ -317,7 +321,7 @@ reproduce and compare. Don't hard-code numbers in notebooks; read them from the 
 ## Links
 
 - Our model: [Ingsyling/distilbert-squad2](https://huggingface.co/Ingsyling/distilbert-squad2) on the Hugging Face Hub
-- The demo in Colab: [notebooks/04_demo_colab.ipynb](https://colab.research.google.com/github/Davidfaleye360/AI-Question-Answering-System/blob/main/notebooks/04_demo_colab.ipynb)
+- The demo in Colab: [notebooks/04_demo_colab.ipynb](https://colab.research.google.com/github/Davidfaleye360/qa-experiments/blob/main/notebooks/04_demo_colab.ipynb)
 - Baseline model: [deepset/roberta-base-squad2](https://huggingface.co/deepset/roberta-base-squad2)
 - Dataset: [rajpurkar/squad_v2](https://huggingface.co/datasets/rajpurkar/squad_v2)
 - The technical report: [report/report.pdf](report/report.pdf)

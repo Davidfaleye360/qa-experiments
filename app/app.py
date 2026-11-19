@@ -40,7 +40,7 @@ Paste a passage, ask a question about it, and the model points to the answer **i
 If the passage doesn't contain the answer, the model should say so instead of guessing.
 
 CSCI 390 course project by David Faleye and Kosisochukwu Ogbuanya ·
-[code](https://github.com/Davidfaleye360/AI-Question-Answering-System) ·
+[code](https://github.com/Davidfaleye360/qa-experiments) ·
 [our model](https://huggingface.co/Ingsyling/distilbert-squad2)
 """
 

@@ -90,6 +90,19 @@ def test_smoke_overrides_change_only_what_they_list():
     assert smoke.preprocessing == base.preprocessing and smoke.model == base.model
 
 
+def test_deberta_config_and_its_trial_run():
+    """configs/deberta.yaml is a full config; configs/smoke.yaml on top of it gives a short trial run."""
+    deberta = load_config(ROOT / "configs" / "deberta.yaml")
+    assert deberta.model.checkpoint == "microsoft/deberta-v3-base"
+    assert deberta.model.hub_model_id != load_config(ROOT / "configs" / "distilbert.yaml").model.hub_model_id, \
+        "must not overwrite the group project's model on the Hub"
+    # Same number of windows per weight update as DistilBERT, in two halves to fit in GPU memory.
+    assert deberta.training.batch_size * deberta.training.gradient_accumulation_steps == 16
+    trial = load_config(ROOT / "configs" / "deberta.yaml", overrides=ROOT / "configs" / "smoke.yaml")
+    assert trial.model == deberta.model and trial.training.max_steps == 50
+    assert trial.training.output_dir != deberta.training.output_dir
+
+
 def test_overrides_reject_typos(tmp_path: Path):
     bad = tmp_path / "bad_overrides.yaml"
     bad.write_text("training:\n  max_step: 50\n")

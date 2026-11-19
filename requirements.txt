@@ -6,6 +6,8 @@ datasets>=2.20
 evaluate>=0.4
 accelerate>=0.26
 torch>=2.1
+sentencepiece>=0.1.99         # DeBERTa-v3's tokenizer
+protobuf>=3.20                 # needed to build DeBERTa-v3's fast tokenizer
 
 # Utilities
 pyyaml>=6.0

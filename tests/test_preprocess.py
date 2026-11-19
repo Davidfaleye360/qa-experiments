@@ -152,3 +152,36 @@ def test_dataset_map_integration(tokenizer):
     assert set(out.column_names) >= {"input_ids", "attention_mask", "start_positions", "end_positions"}
     assert "offset_mapping" not in out.column_names
     assert out["start_positions"][1] == 0 and out["end_positions"][1] == 0
+
+
+class _FakeEncoding(dict):
+    """Just enough of a tokenizer output for trim_leading_spaces: offsets, sample map and sequence ids."""
+
+    def __init__(self, offsets, sequence_ids):
+        super().__init__(offset_mapping=[offsets], overflow_to_sample_mapping=[0])
+        self._sequence_ids = sequence_ids
+
+    def sequence_ids(self, i):
+        return self._sequence_ids
+
+
+def test_trim_leading_spaces_moves_passage_starts_past_the_space():
+    from src.preprocess import trim_leading_spaces
+
+    context = "Marie Curie won"
+    # Like DeBERTa-v3: "Curie" and "won" claim the space in front of them. Token 0 is the question.
+    enc = _FakeEncoding([(0, 4), (0, 5), (5, 11), (11, 15), (0, 0)], [0, 1, 1, 1, None])
+    trim_leading_spaces(enc, [context])
+    assert enc["offset_mapping"][0] == [(0, 4), (0, 5), (6, 11), (12, 15), (0, 0)]
+    assert [context[s:e] for s, e in enc["offset_mapping"][0][1:4]] == ["Marie", "Curie", "won"]
+
+
+def test_trim_leading_spaces_changes_nothing_for_bert_style_offsets(tokenizer):
+    from src.preprocess import _tokenize
+
+    examples = {"question": ["Who won?"], "context": ["Marie Curie won the Nobel Prize."]}
+    enc = _tokenize(examples, tokenizer, max_length=64, stride=16)
+    context = examples["context"][0]
+    for (start, end), seq in zip(enc["offset_mapping"][0], enc.sequence_ids(0)):
+        if seq == 1:
+            assert not context[start].isspace()

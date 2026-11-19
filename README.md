@@ -19,7 +19,7 @@ dev set. Most of what follows in this README describes that starting point.
 
 | Experiment | Idea | Status |
 | --- | --- | --- |
-| A stronger pretrained model | Fine-tune `microsoft/deberta-v3-base` with the same pipeline. Its authors report about 88 F1 on SQuAD 2.0. | Planned |
+| A stronger pretrained model | Fine-tune `microsoft/deberta-v3-base` with the same pipeline. Its authors report about 88 F1 on SQuAD 2.0. Settings: [configs/deberta.yaml](configs/deberta.yaml); run it with [notebooks/05_train_deberta_colab.ipynb](https://colab.research.google.com/github/Davidfaleye360/qa-experiments/blob/main/notebooks/05_train_deberta_colab.ipynb). | Ready to train |
 | Distillation | Train the small DistilBERT to copy RoBERTa's scores, not only the correct answers, to close part of the gap at the same size. | Idea |
 
 Models trained here get their own names on the Hugging Face Hub, so the group's
@@ -137,7 +137,8 @@ qa-experiments/
 │   └── MODEL_CARD.md           # the description shown on the model's Hugging Face page
 ├── configs/
 │   ├── distilbert.yaml         # every setting in one place
-│   └── smoke.yaml              # the few settings the 50-step smoke test changes
+│   ├── smoke.yaml              # the few settings the 50-step smoke test changes
+│   └── deberta.yaml            # experiment 1: DeBERTa-v3-base, same pipeline
 ├── src/
 │   ├── config.py               # loads the YAML config
 │   ├── data.py                 # loads SQuAD 2.0
@@ -164,7 +165,8 @@ qa-experiments/
 │   ├── 01_explore_data.ipynb   # dataset stats + a ready-made model as a baseline
 │   ├── 02_train_colab.ipynb    # training in Colab: smoke test, full run, dev-set score
 │   ├── 03_error_analysis.ipynb # what the models get wrong, and why
-│   └── 04_demo_colab.ipynb     # starts the demo in Colab with a public link
+│   ├── 04_demo_colab.ipynb     # starts the demo in Colab with a public link
+│   └── 05_train_deberta_colab.ipynb # experiment 1: trial run, full run and dev score in Colab
 ├── tests/                      # unit tests (no internet or GPU needed)
 ├── pytest.ini
 └── results/

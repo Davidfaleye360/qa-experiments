@@ -1,0 +1,39 @@
+# Experiment 1: fine-tune DeBERTa-v3-base on SQuAD 2.0 with the same pipeline as DistilBERT.
+# Goal: beat deepset/roberta-base-squad2 (79.9 EM / 82.9 F1). DeBERTa-v3's authors report about 88 F1.
+# Only the model and what it needs differ from configs/distilbert.yaml; the reasons are next to each change.
+#
+#   Trial run (50 steps):  python -m src.train --config configs/deberta.yaml --overrides configs/smoke.yaml --fresh
+#   Full run:              python -m src.train --config configs/deberta.yaml --output-dir <Drive folder> --push-to-hub
+
+model:
+  checkpoint: microsoft/deberta-v3-base       # 12 layers, 184 M parameters (DistilBERT: 6 layers, 66 M)
+  hub_model_id: Ingsyling/deberta-v3-squad2   # a new name: Ingsyling/distilbert-squad2 stays the group's model
+
+data:
+  dataset_name: rajpurkar/squad_v2
+  train_fraction: 1.0
+  eval_fraction: 1.0
+
+preprocessing:
+  max_length: 384
+  doc_stride: 128
+
+training:
+  output_dir: outputs/deberta-v3-squad2
+  learning_rate: 3.0e-5
+  batch_size: 8                               # 16 windows of 384 word pieces may not fit in a T4's memory
+  gradient_accumulation_steps: 2              # 8 x 2 = 16 windows per weight update, as for DistilBERT
+  num_epochs: 2
+  max_steps: -1
+  warmup_ratio: 0.1
+  weight_decay: 0.01
+  fp16: true                                  # watch the trial run: DeBERTa-v3 can give "nan" losses in fp16
+  logging_steps: 100
+  save_steps: 1000                            # steps take longer than DistilBERT's, so save more often
+  save_total_limit: 1                         # each checkpoint is about 2 GB (weights + optimizer state)
+  seed: 42
+
+postprocessing:
+  n_best: 20
+  max_answer_length: 30
+  null_threshold: 0.0

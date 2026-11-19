@@ -42,6 +42,9 @@ class TrainingConfig:
     output_dir: str = "outputs/distilbert-squad2"
     learning_rate: float = 3e-5
     batch_size: int = 16
+    # Windows per weight update = batch_size x gradient_accumulation_steps. A bigger model can run out of GPU
+    # memory at batch_size 16; batch_size 8 with 2 accumulation steps gives the same update from two halves.
+    gradient_accumulation_steps: int = 1
     num_epochs: int = 2
     max_steps: int = -1        # -1 = train for num_epochs; a positive number stops after that many steps
     warmup_ratio: float = 0.1

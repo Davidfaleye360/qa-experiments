@@ -25,7 +25,7 @@ def _tokenize(examples: dict[str, list], tokenizer, max_length: int, stride: int
     """Tokenize question + passage pairs into overlapping, padded windows."""
     # Some SQuAD questions start with spaces, which waste tokens and can break truncation.
     questions = [q.strip() for q in examples["question"]]
-    return tokenizer(
+    enc = tokenizer(
         questions,
         examples["context"],
         truncation="only_second",        # only ever cut the passage, never the question
@@ -35,6 +35,26 @@ def _tokenize(examples: dict[str, list], tokenizer, max_length: int, stride: int
         return_offsets_mapping=True,     # (start_char, end_char) for every token
         padding="max_length",
     )
+    trim_leading_spaces(enc, examples["context"])
+    return enc
+
+
+def trim_leading_spaces(enc, contexts: list[str]) -> None:
+    """Make every passage token's character span start at a letter, not at a space.
+
+    Some tokenizers (DeBERTa-v3's, which is based on SentencePiece) count the space before a word as
+    part of that word. The labels still land on the right tokens, but every answer cut out of the
+    passage would begin with a space, and the demo would highlight it. BERT-style tokenizers never
+    do this, so for DistilBERT and RoBERTa nothing changes. Edits enc["offset_mapping"] in place.
+    """
+    for i, offsets in enumerate(enc["offset_mapping"]):
+        context = contexts[enc["overflow_to_sample_mapping"][i]]
+        sequence_ids = enc.sequence_ids(i)
+        for k, (start, end) in enumerate(offsets):
+            if sequence_ids[k] == CONTEXT_SEQ_ID and start < end and context[start].isspace():
+                while start < end and context[start].isspace():
+                    start += 1
+                offsets[k] = (start, end)
 
 
 def _context_token_range(sequence_ids: list) -> tuple[int, int]:

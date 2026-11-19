@@ -66,6 +66,7 @@ def build_training_arguments(training: TrainingConfig, fp16: bool, use_cpu: bool
         output_dir=training.output_dir,
         learning_rate=training.learning_rate,
         per_device_train_batch_size=training.batch_size,
+        gradient_accumulation_steps=training.gradient_accumulation_steps,
         num_train_epochs=training.num_epochs,
         max_steps=training.max_steps,        # -1 means "use num_train_epochs"
         warmup_ratio=training.warmup_ratio,  # learning rate climbs for the first 10% of steps, then falls to 0
@@ -149,6 +150,8 @@ def run_training(model, tokenizer, train_features, cfg: Config, resume: bool = T
         "loss_went_down": loss_went_down([loss for _, loss in losses]),
         "checkpoints": checkpoints,
         "final_model_saved": (out_dir / "model.safetensors").exists(),
+        # The most GPU memory training needed, so we know how much room a bigger batch would have (T4: 15 GB).
+        "peak_gpu_memory_gb": round(torch.cuda.max_memory_allocated() / 1e9, 1) if torch.cuda.is_available() else None,
     }
     summary["passed"] = bool(summary["loss_went_down"] and checkpoints and summary["final_model_saved"])
     (out_dir / SUMMARY_FILE).write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
@@ -197,6 +200,8 @@ def print_summary(summary: dict) -> None:
     """Print what happened in the run, ending with RESULT: PASS or FAIL."""
     print(f"\nTrained {summary['steps']:,} steps on {summary['train_windows']:,} windows "
           f"in {summary['runtime_seconds']:.0f}s (device: {summary['device']}, fp16: {summary['fp16']})")
+    if summary.get("peak_gpu_memory_gb") is not None:
+        print(f"Peak GPU memory: {summary['peak_gpu_memory_gb']} GB")
     print("Training loss (step: loss):")
     print("  " + "  ".join(f"{step}: {loss:.3f}" for step, loss in summary["losses"]))
     print(f"Loss went down: {'yes' if summary['loss_went_down'] else 'NO'}")

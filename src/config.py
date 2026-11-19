@@ -67,12 +67,28 @@ class PostprocessingConfig:
 
 
 @dataclass
+class DistillationConfig:
+    """Settings for learning from a teacher model's scores (src/distill.py). No teacher = normal training."""
+    teacher: Optional[str] = None      # Hub id or folder of a trained QA model, e.g. Ingsyling/deberta-v3-squad2
+    # Softens both models' scores before comparing them, so the student also learns which runner-up
+    # answers the teacher found plausible, not only its top pick. 1 = unchanged; 2 is the usual choice.
+    temperature: float = 2.0
+    # Weight of the teacher's scores in the loss; the rest (1 - alpha) goes to the SQuAD labels.
+    alpha: float = 0.5
+    teacher_batch_size: int = 32       # windows per teacher forward pass (no training, so it can be large)
+    # The teacher reads the same text as each student window. Its word pieces differ, so the same text can
+    # take a few more of them; 512 leaves room. DeBERTa-v3 handles 512.
+    teacher_max_length: int = 512
+
+
+@dataclass
 class Config:
     model: ModelConfig = field(default_factory=ModelConfig)
     data: DataConfig = field(default_factory=DataConfig)
     preprocessing: PreprocessingConfig = field(default_factory=PreprocessingConfig)
     training: TrainingConfig = field(default_factory=TrainingConfig)
     postprocessing: PostprocessingConfig = field(default_factory=PostprocessingConfig)
+    distillation: DistillationConfig = field(default_factory=DistillationConfig)
 
 
 def _build(cls, values: dict[str, Any] | None):
@@ -115,4 +131,5 @@ def load_config(
         preprocessing=_build(PreprocessingConfig, raw.get("preprocessing")),
         training=_build(TrainingConfig, raw.get("training")),
         postprocessing=_build(PostprocessingConfig, raw.get("postprocessing")),
+        distillation=_build(DistillationConfig, raw.get("distillation")),
     )

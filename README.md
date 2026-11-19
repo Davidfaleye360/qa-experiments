@@ -20,7 +20,7 @@ dev set. Most of what follows in this README describes that starting point.
 | Experiment | Idea | Status |
 | --- | --- | --- |
 | A stronger pretrained model | Fine-tune `microsoft/deberta-v3-base` with the same pipeline. Its authors report about 88 F1 on SQuAD 2.0. Settings: [configs/deberta.yaml](configs/deberta.yaml); run it with [notebooks/05_train_deberta_colab.ipynb](https://colab.research.google.com/github/Davidfaleye360/qa-experiments/blob/main/notebooks/05_train_deberta_colab.ipynb). | **Done: 84.86 EM / 87.69 F1, beats RoBERTa by 4.8 F1.** Model: [Ingsyling/deberta-v3-squad2](https://huggingface.co/Ingsyling/deberta-v3-squad2) |
-| Distillation | Train the small DistilBERT to copy RoBERTa's scores, not only the correct answers, to close part of the gap at the same size. | Idea |
+| Distillation | Train the small DistilBERT again, learning from our DeBERTa-v3's scores for every possible start and end as well as from the correct answers, to close part of the gap at the same size and speed. The two models cut text into different word pieces, so the scores are lined up by character position ([src/distill.py](src/distill.py)). Settings: [configs/distill.yaml](configs/distill.yaml); run it with [notebooks/06_distill_colab.ipynb](https://colab.research.google.com/github/Davidfaleye360/qa-experiments/blob/main/notebooks/06_distill_colab.ipynb). | Code ready, waiting for the Colab trial run |
 
 Models trained here get their own names on the Hugging Face Hub, so the group's
 [Ingsyling/distilbert-squad2](https://huggingface.co/Ingsyling/distilbert-squad2) stays unchanged.
@@ -205,13 +205,15 @@ qa-experiments/
 ├── configs/
 │   ├── distilbert.yaml         # every setting in one place
 │   ├── smoke.yaml              # the few settings the 50-step smoke test changes
-│   └── deberta.yaml            # experiment 1: DeBERTa-v3-base, same pipeline
+│   ├── deberta.yaml            # experiment 1: DeBERTa-v3-base, same pipeline
+│   └── distill.yaml            # experiment 2: DistilBERT learning from DeBERTa-v3
 ├── src/
 │   ├── config.py               # loads the YAML config
 │   ├── data.py                 # loads SQuAD 2.0
 │   ├── preprocess.py           # tokenization, windows, start/end labels
 │   ├── explore.py              # dataset statistics for the exploration notebook
 │   ├── train.py                # fine-tuning with the Hugging Face Trainer
+│   ├── distill.py              # experiment 2: the teacher's scores and the distillation loss
 │   ├── postprocess.py          # start/end scores -> answer text or "no answer"
 │   ├── evaluate.py             # EM and F1 on the dev set, overall and HasAns / NoAns
 │   ├── threshold.py            # sweep the no-answer threshold, plot F1 against it
@@ -233,7 +235,8 @@ qa-experiments/
 │   ├── 02_train_colab.ipynb    # training in Colab: smoke test, full run, dev-set score
 │   ├── 03_error_analysis.ipynb # what the models get wrong, and why
 │   ├── 04_demo_colab.ipynb     # starts the demo in Colab with a public link
-│   └── 05_train_deberta_colab.ipynb # experiment 1: trial run, full run and dev score in Colab
+│   ├── 05_train_deberta_colab.ipynb # experiment 1: trial run, full run and dev score in Colab
+│   └── 06_distill_colab.ipynb  # experiment 2: the same for distillation
 ├── tests/                      # unit tests (no internet or GPU needed)
 ├── pytest.ini
 └── results/

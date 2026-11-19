@@ -1,0 +1,45 @@
+# Experiment 2: distillation. Train DistilBERT again, but let it learn from our DeBERTa-v3's scores
+# (87.7 F1) as well as from the SQuAD labels. Everything else is configs/distilbert.yaml unchanged, so a
+# difference from our first DistilBERT (67.4 F1) comes from the teacher. How it works: src/distill.py.
+#
+#   Trial run (50 steps):  python -m src.train --config configs/distill.yaml --overrides configs/smoke.yaml --fresh
+#   Full run:              python -m src.train --config configs/distill.yaml --output-dir <Drive folder> --push-to-hub
+
+model:
+  checkpoint: distilbert-base-uncased             # the same starting point as our first DistilBERT
+  hub_model_id: Ingsyling/distilbert-squad2-distilled   # a new name: Ingsyling/distilbert-squad2 stays the group's
+
+data:
+  dataset_name: rajpurkar/squad_v2
+  train_fraction: 1.0
+  eval_fraction: 1.0
+
+preprocessing:
+  max_length: 384
+  doc_stride: 128
+
+training:
+  output_dir: outputs/distilbert-squad2-distilled
+  learning_rate: 3.0e-5
+  batch_size: 16
+  num_epochs: 2
+  max_steps: -1
+  warmup_ratio: 0.1
+  weight_decay: 0.01
+  fp16: true
+  logging_steps: 100
+  save_steps: 2000
+  save_total_limit: 2
+  seed: 42
+
+postprocessing:
+  n_best: 20
+  max_answer_length: 30
+  null_threshold: 0.0
+
+distillation:
+  teacher: Ingsyling/deberta-v3-squad2   # experiment 1's model
+  temperature: 2.0                       # softens the scores so runner-up answers count too
+  alpha: 0.5                             # half the loss from the teacher, half from the labels
+  teacher_batch_size: 32
+  teacher_max_length: 512

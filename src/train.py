@@ -61,9 +61,15 @@ def make_train_features(raw_train, tokenizer, pre: PreprocessingConfig):
     )
 
 
-def build_training_arguments(training: TrainingConfig, fp16: bool, use_cpu: bool = False) -> TrainingArguments:
-    """Translate our config into the Trainer's settings. No numbers are written here."""
+def build_training_arguments(training: TrainingConfig, fp16: bool, use_cpu: bool = False,
+                             remove_unused_columns: bool = True) -> TrainingArguments:
+    """Translate our config into the Trainer's settings. No numbers are written here.
+
+    remove_unused_columns=False keeps columns the model itself doesn't take, such as the teacher's
+    scores in distillation (the Trainer would otherwise drop them before our loss sees them).
+    """
     return TrainingArguments(
+        remove_unused_columns=remove_unused_columns,
         output_dir=training.output_dir,
         learning_rate=training.learning_rate,
         per_device_train_batch_size=training.batch_size,
@@ -121,14 +127,25 @@ def run_training(model, tokenizer, train_features, cfg: Config, resume: bool = T
     if training.fp16 and not fp16:
         print("Note: fp16 is on in the config but there is no CUDA GPU here, so training without it.")
 
-    trainer = Trainer(
+    common = dict(
         model=model,
-        args=build_training_arguments(training, fp16, use_cpu),
         train_dataset=train_features,
-        # Pads each batch only to its longest window (rounded up to a multiple of 8, which GPUs handle fastest).
-        data_collator=DataCollatorWithPadding(tokenizer, pad_to_multiple_of=8),
         processing_class=tokenizer,           # saved next to the model, so a checkpoint is self-contained
     )
+    if cfg.distillation.teacher:
+        # Experiment 2: learn from the teacher's scores as well as the labels (src/distill.py).
+        from src.distill import DistillationCollator, DistillationTrainer
+
+        trainer = DistillationTrainer(
+            args=build_training_arguments(training, fp16, use_cpu, remove_unused_columns=False),
+            data_collator=DistillationCollator(tokenizer),
+            temperature=cfg.distillation.temperature, alpha=cfg.distillation.alpha, **common)
+    else:
+        trainer = Trainer(
+            args=build_training_arguments(training, fp16, use_cpu),
+            # Pads each batch only to its longest window (rounded up to a multiple of 8, which GPUs handle fastest).
+            data_collator=DataCollatorWithPadding(tokenizer, pad_to_multiple_of=8),
+            **common)
 
     last_checkpoint = get_last_checkpoint(str(out_dir)) if resume and out_dir.is_dir() else None
     if last_checkpoint:
@@ -143,6 +160,7 @@ def run_training(model, tokenizer, train_features, cfg: Config, resume: bool = T
     checkpoints = sorted((p.name for p in out_dir.glob("checkpoint-*")), key=lambda name: int(name.split("-")[1]))
     summary = {
         "model": cfg.model.checkpoint,
+        "teacher": cfg.distillation.teacher,
         "output_dir": str(out_dir),
         "train_windows": len(train_features),
         "steps": trainer.state.global_step,
@@ -243,7 +261,17 @@ def main() -> int:
     model = AutoModelForQuestionAnswering.from_pretrained(cfg.model.checkpoint)
 
     raw_train = take_fraction(load_dataset(cfg.data.dataset_name, split="train"), cfg.data.train_fraction, t.seed)
-    train_features = make_train_features(raw_train, tokenizer, cfg.preprocessing)
+    if cfg.distillation.teacher:
+        from src.distill import make_distill_features, teacher_agreement
+
+        d = cfg.distillation
+        print(f"Distillation: teacher {d.teacher}, temperature {d.temperature}, alpha {d.alpha}\n")
+        train_features = make_distill_features(raw_train, tokenizer, cfg)
+        agree = teacher_agreement(train_features)
+        print(f"Check: the teacher's top start matches the SQuAD label in {agree['start_pct']}% of "
+              f"{agree['windows']:,} windows, its top end in {agree['end_pct']}%, both in {agree['both_pct']}%")
+    else:
+        train_features = make_train_features(raw_train, tokenizer, cfg.preprocessing)
     print(f"{len(raw_train):,} questions -> {len(train_features):,} training windows")
 
     summary = run_training(model, tokenizer, train_features, cfg, resume=not args.fresh, use_cpu=args.cpu)

@@ -29,19 +29,23 @@ NO_ANSWER_TEXT = "(no answer)"
 class DemoModel:
     label: str            # shown in the model switch
     hub_id: str           # where the weights come from
-    default_tau: float    # the best threshold found by the sweep in T7 (results/threshold_sweep.json)
+    default_tau: float    # the best threshold found by the sweep (results/threshold_sweep_three_models.json)
     note: str             # one line under the switch
 
 
 MODELS = {
     m.label: m for m in (
+        DemoModel("DeBERTa-v3 (ours)", "Ingsyling/deberta-v3-squad2", -1.9,
+                  "Fine-tuned by us on SQuAD 2.0 (experiment 1). 184 M parameters, 87.7 F1 on the dev set: "
+                  "the most accurate, and the slowest (about 85 ms per question on a laptop CPU)."),
         DemoModel("DistilBERT (ours)", "Ingsyling/distilbert-squad2", -1.4,
-                  "Fine-tuned by us on SQuAD 2.0. 66 M parameters, 67.4 F1 on the dev set."),
+                  "Fine-tuned by us on SQuAD 2.0 (the course project). 66 M parameters, 67.4 F1 on the dev set: "
+                  "the fastest (about 27 ms per question)."),
         DemoModel("RoBERTa (deepset)", "deepset/roberta-base-squad2", -1.6,
-                  "Published baseline. 124 M parameters, 82.9 F1 on the dev set, about half as fast."),
+                  "Published baseline. 124 M parameters, 82.9 F1 on the dev set (about 53 ms per question)."),
     )
 }
-DEFAULT_MODEL = "DistilBERT (ours)"
+DEFAULT_MODEL = "DeBERTa-v3 (ours)"
 
 _loaded: dict[str, tuple] = {}
 

@@ -39,9 +39,11 @@ INTRO = """
 Paste a passage, ask a question about it, and the model points to the answer **inside the passage**.
 If the passage doesn't contain the answer, the model should say so instead of guessing.
 
-CSCI 390 course project by David Faleye and Kosisochukwu Ogbuanya ·
+Started as a CSCI 390 course project by David Faleye and Kosisochukwu Ogbuanya; DeBERTa-v3 is David Faleye's
+follow-up experiment ·
 [code](https://github.com/Davidfaleye360/qa-experiments) ·
-[our model](https://huggingface.co/Ingsyling/distilbert-squad2)
+[DistilBERT model](https://huggingface.co/Ingsyling/distilbert-squad2) ·
+[DeBERTa-v3 model](https://huggingface.co/Ingsyling/deberta-v3-squad2)
 """
 
 THRESHOLD_HELP = (

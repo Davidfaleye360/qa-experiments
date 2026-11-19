@@ -229,7 +229,8 @@ def label_summary(path: str | Path) -> dict:
 # Figure
 # --------------------------------------------------------------------------------------
 
-SERIES_COLORS = ["#2a78d6", "#eb6834"]   # our model is always blue, the baseline always orange
+# Our model is always blue, the baseline always orange, a third model aqua (next validated palette slot).
+SERIES_COLORS = ["#2a78d6", "#eb6834", "#1baf7a"]
 INK, MUTED, GRID = "#1f1f1e", "#6b6a63", "#e4e3de"
 
 
@@ -254,11 +255,11 @@ def plot_analysis(analyses: dict[str, dict], labels: dict[str, str], path: str |
     ]
 
     fig, axes = plt.subplots(1, 3, figsize=(15, 4.6), gridspec_kw={"width_ratios": [1.15, 1.5, 1]})
-    height = 0.38
+    height = 0.76 / len(names)   # the bars of one category share 0.8 of a row, whatever the model count
     for ax, (title, categories, value, is_f1) in zip(axes, panels):
         for i, (name, color) in enumerate(zip(names, SERIES_COLORS)):
             values = [value(analyses[name], c) for c in categories]
-            positions = [k + (i - (len(names) - 1) / 2) * (height + 0.04) for k in range(len(categories))]
+            positions = [k + (i - (len(names) - 1) / 2) * (height + 0.02) for k in range(len(categories))]
             bars = ax.barh(positions, values, height=height, color=color, label=labels.get(name, name))
             for bar, v in zip(bars, values):
                 ax.annotate(f"{v:.0f}" if is_f1 else f"{v:,}", xy=(v, bar.get_y() + bar.get_height() / 2),
@@ -306,6 +307,10 @@ def main() -> int:
     parser.add_argument("--results-dir", default="results")
     parser.add_argument("--config", default="configs/distilbert.yaml")
     parser.add_argument("--sample-size", type=int, default=60)
+    parser.add_argument("--sample-model", default=None,
+                        help="which of --models the labelling sample comes from (default: the first)")
+    parser.add_argument("--suffix", default="",
+                        help="added to the output file names, e.g. _three_models, so earlier results are kept")
     args = parser.parse_args()
 
     from datasets import load_dataset
@@ -323,17 +328,19 @@ def main() -> int:
         analyses[name] = analyse(rows_of[name])
         print_report(labels[name], analyses[name])
 
-    (results / "error_breakdown.json").write_text(
+    json_path, png_path = results / f"error_breakdown{args.suffix}.json", results / f"error_analysis{args.suffix}.png"
+    json_path.write_text(
         json.dumps({"dataset": f"{cfg.data.dataset_name} (validation)", "models": analyses}, indent=1) + "\n",
         encoding="utf-8")
-    plot_analysis(analyses, labels, results / "error_analysis.png")
+    plot_analysis(analyses, labels, png_path)
 
     # The sample keeps any labels already written into the file, so re-running doesn't erase hand work.
-    sample_path = results / "error_sample.csv"
-    sample = draw_sample(rows_of[args.models[0]], args.sample_size, cfg.training.seed)
+    sample_model = args.sample_model or args.models[0]
+    sample_path = results / f"error_sample{args.suffix}.csv"
+    sample = draw_sample(rows_of[sample_model], args.sample_size, cfg.training.seed)
     write_sample_csv(sample, sample_path, read_sample_labels(sample_path))
-    print(f"\nSaved {results / 'error_breakdown.json'}, {results / 'error_analysis.png'} "
-          f"and {sample_path} ({len(sample)} wrong predictions of {labels[args.models[0]]} to label)")
+    print(f"\nSaved {json_path}, {png_path} "
+          f"and {sample_path} ({len(sample)} wrong predictions of {labels[sample_model]} to label)")
     return 0
 
 

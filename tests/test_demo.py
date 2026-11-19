@@ -123,11 +123,11 @@ def test_models_are_loaded_once_and_reused(monkeypatch):
 
     assert get_model(DEFAULT_MODEL, loader=fake_loader) == ("model", "tokenizer")
     get_model(DEFAULT_MODEL, loader=fake_loader)
-    assert calls == [("Ingsyling/distilbert-squad2", "cpu")]
+    assert calls == [(MODELS[DEFAULT_MODEL].hub_id, "cpu")]
 
 
 def test_model_list_and_examples_are_well_formed():
-    assert DEFAULT_MODEL in MODELS and len(MODELS) == 2
+    assert DEFAULT_MODEL in MODELS and len(MODELS) == 3
     assert all(-8 <= m.default_tau <= 8 and "/" in m.hub_id for m in MODELS.values())
     assert all(len(row) == 2 and row[1].endswith("?") for row in EXAMPLES)
 

@@ -34,8 +34,12 @@ The demo is not hosted permanently, but anyone can start it in about two minutes
   (needs a Google account), run its two code cells, and open the `gradio.live` link it prints.
 - **On your own computer:** follow "Getting started" below, then run `python app/app.py`.
 
-Our trained model is public at [Ingsyling/distilbert-squad2](https://huggingface.co/Ingsyling/distilbert-squad2),
-so the demo downloads it by itself.
+The demo lets you switch between three models and ask each one the same question: our DeBERTa-v3
+([Ingsyling/deberta-v3-squad2](https://huggingface.co/Ingsyling/deberta-v3-squad2), the default and the most
+accurate), our DistilBERT from the course project
+([Ingsyling/distilbert-squad2](https://huggingface.co/Ingsyling/distilbert-squad2), the fastest) and the
+published RoBERTa baseline. Each one is downloaded from the Hugging Face Hub the first time you pick it, and
+the no-answer threshold slider starts at that model's tuned value.
 
 ## Results
 
@@ -46,17 +50,24 @@ CPU time is the median time to answer one dev question end to end on an Apple M2
 
 | Model | EM | F1 | HasAns F1 | NoAns F1 | Size | CPU time / question |
 | --- | --- | --- | --- | --- | --- | --- |
-| DistilBERT (ours) | 64.14 | 67.38 | 72.17 | 62.59 | 266 MB (66 M parameters) | 31 ms |
-| RoBERTa (deepset) | 79.90 | 82.91 | 84.01 | 81.82 | 496 MB (124 M parameters) | 57 ms |
-| DeBERTa-v3 (ours, experiment 1) | **84.86** | **87.69** | **89.02** | **86.36** | 735 MB (184 M parameters) | not measured |
+| DistilBERT (ours) | 64.14 | 67.38 | 72.17 | 62.59 | 266 MB (66 M parameters) | 27 ms |
+| RoBERTa (deepset) | 79.90 | 82.91 | 84.01 | 81.82 | 496 MB (124 M parameters) | 53 ms |
+| DeBERTa-v3 (ours, experiment 1) | **84.86** | **87.69** | **89.02** | **86.36** | 735 MB (184 M parameters) | 85 ms |
 
-Our model is 15.5 F1 points behind RoBERTa at 54% of the size and 1.8 times the speed.
+The three CPU times come from one run of `src/benchmark.py` on the same 200 questions
+([results/efficiency_three_models.json](results/efficiency_three_models.json)). The course project's own run on
+the same laptop measured 31 ms and 57 ms for DistilBERT and RoBERTa
+([results/efficiency.json](results/efficiency.json)), so timings vary by about 10% from run to run.
+
+Our DistilBERT is 15.5 F1 points behind RoBERTa at 54% of the size and about twice the speed.
 
 Experiment 1, [Ingsyling/deberta-v3-squad2](https://huggingface.co/Ingsyling/deberta-v3-squad2), is
 `microsoft/deberta-v3-base` fine-tuned with the same pipeline ([configs/deberta.yaml](configs/deberta.yaml),
 2 epochs, 1 h 39 min on a free Colab T4). It is 4.8 F1 points ahead of RoBERTa (82.91 → 87.69), better on both
 answerable (+5.0) and unanswerable (+4.5) questions, and 20.3 points ahead of our DistilBERT. Its authors report
 about 88 F1. Scoring the uploaded model on an M2 laptop gave exactly the same numbers as the Colab run.
+The price is size and speed: it is 1.5 times RoBERTa's size and takes 1.6 times as long per question
+(85 ms against 53 ms on a laptop CPU).
 
 Fine-tuning is what gets it there: the same `distilbert-base-uncased` before our training scores 1.2 EM /
 4.6 F1 on the first 1,000 dev questions, against 64.2 / 67.7 for our model on the same questions.
@@ -72,8 +83,16 @@ by tuning on the questions it is scored on (doing that gives 68.30).
 | --- | --- | --- | --- | --- |
 | DistilBERT (ours) | 67.38 | −1.38 | 68.30 | 68.08 |
 | RoBERTa (deepset) | 82.91 | −1.64 | 83.50 | 83.44 |
+| DeBERTa-v3 (ours, experiment 1) | 87.69 | −1.86 | 88.39 | **88.33** |
 
 ![F1 against the no-answer threshold](results/threshold_sweep.png)
+
+**DeBERTa-v3 (experiment 1):** the same sweep gives +0.6 F1 (87.69 → 88.33 cross-validated) at τ ≈ −1.9,
+which puts it 4.9 points ahead of RoBERTa when both are tuned (88.33 against 83.44). Every model's best τ
+is between −1.4 and −1.9: all three answer slightly too often at τ = 0. The demo starts each model at its
+best τ. Figure with all three models:
+[results/threshold_sweep_three_models.png](results/threshold_sweep_three_models.png); numbers:
+[results/threshold_sweep_three_models.json](results/threshold_sweep_three_models.json).
 
 ### Where the errors are
 
@@ -93,6 +112,28 @@ the passage or reverse its meaning, and the too long / too short answers we read
 would accept. Details are in [notebooks/03_error_analysis.ipynb](notebooks/03_error_analysis.ipynb).
 
 ![Errors by type, F1 by question word and by answer length](results/error_analysis.png)
+
+**DeBERTa-v3 (experiment 1)** gets 1,797 dev questions wrong, against 2,386 for RoBERTa and 4,258 for our
+DistilBERT:
+
+| Error type | DistilBERT (ours) | RoBERTa (deepset) | DeBERTa-v3 (ours) | % of DeBERTa's errors |
+| --- | --- | --- | --- | --- |
+| False answer: answered an unanswerable question | 2,224 | 1,081 | **811** | 45.1% |
+| Missed answer: said "no answer" to an answerable question | 1,033 | 572 | **337** | 18.8% |
+| Too long or too short: right place, different edges | 573 | 497 | **481** | 26.8% |
+| Partial overlap or wrong span | 428 | 236 | **168** | 9.3% |
+
+- **The gains are in deciding whether to answer.** DeBERTa makes 25% fewer false answers and 41% fewer missed
+  answers than RoBERTa, but about as many edge errors (481 against 497). Edges are now a quarter of its
+  errors. In the course project's hand-read sample, every edge error was an answer a person would accept; if
+  that holds for DeBERTa too (not checked yet), its real accuracy is higher than its EM suggests.
+- **Hard questions got much easier.** F1 on answers of 10+ words rose from 51 (DistilBERT) and 73 (RoBERTa)
+  to 84; on "how" questions from 64 and 80 to 85. "Why" is still the hardest kind (76).
+
+Figure with all three models: [results/error_analysis_three_models.png](results/error_analysis_three_models.png);
+numbers: [results/error_breakdown_three_models.json](results/error_breakdown_three_models.json). A fixed
+sample of 60 DeBERTa errors, ready to be labelled by hand like the course project's sample, is in
+[results/error_sample_three_models.csv](results/error_sample_three_models.csv) (not labelled yet).
 
 ### Long documents (extension)
 
@@ -189,7 +230,14 @@ qa-experiments/
     ├── error_breakdown.json                  # error types and F1 by question word / answer length
     ├── error_analysis.png                    # the figure for it
     ├── error_sample.csv                      # 60 wrong predictions labelled by hand
-    └── long_documents.json                   # scores when the model reads whole articles
+    ├── long_documents.json                   # scores when the model reads whole articles
+    ├── deberta-v3-squad2.json                # experiment 1: DeBERTa-v3's scores and predictions
+    ├── deberta-v3-squad2_predictions.json
+    ├── efficiency_three_models.json          # experiment 1: size and CPU time, all three models
+    ├── threshold_sweep_three_models.{json,png}  # experiment 1: threshold sweep, all three models
+    ├── error_breakdown_three_models.json     # experiment 1: error analysis, all three models
+    ├── error_analysis_three_models.png
+    └── error_sample_three_models.csv         # experiment 1: 60 DeBERTa errors to label by hand
 ```
 
 ## Getting started

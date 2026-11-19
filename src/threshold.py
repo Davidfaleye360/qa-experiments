@@ -163,8 +163,9 @@ def analyse_model(records: Sequence[dict], grid: Sequence[float]) -> dict:
 # Figure
 # --------------------------------------------------------------------------------------
 
-# Colours follow the entity: our model is always blue, the baseline always orange.
-SERIES_COLORS = ["#2a78d6", "#eb6834"]
+# Colours follow the entity: our model is always blue, the baseline always orange, a third model aqua
+# (the next slot of the validated categorical palette), so pass models in that order.
+SERIES_COLORS = ["#2a78d6", "#eb6834", "#1baf7a"]
 INK, MUTED, GRID = "#1f1f1e", "#6b6a63", "#e4e3de"
 
 
@@ -177,7 +178,11 @@ def plot_sweep(analyses: dict[str, dict], labels: dict[str, str], path: str | Pa
 
     fig, (left, right) = plt.subplots(1, 2, figsize=(11, 4.2), sharey=True)
 
-    for i, ((name, analysis), color) in enumerate(zip(analyses.items(), SERIES_COLORS)):
+    # Labels go under each curve, except the highest curve's, which goes above it: the gap between
+    # two neighbouring curves then holds exactly one label, so labels can't collide.
+    top = max(analyses, key=lambda name: analyses[name]["at_best_tau"]["f1"])
+    for (name, analysis), color in zip(analyses.items(), SERIES_COLORS):
+        above = name == top and len(analyses) > 1
         curve, label = analysis["curve"], labels.get(name, name)
         left.plot(curve["tau"], curve["f1"], color=color, linewidth=2)
         best_tau, best_f1 = analysis["best_tau"], analysis["at_best_tau"]["f1"]
@@ -186,9 +191,8 @@ def plot_sweep(analyses: dict[str, dict], labels: dict[str, str], path: str | Pa
         left.plot([best_tau], [best_f1], marker="D", markersize=8, color=color,
                   markeredgecolor="white", markeredgewidth=2, linestyle="none")
         left.annotate(f"{label}\nbest {best_f1:.1f} at τ = {best_tau:+.1f}", xy=(best_tau, best_f1),
-                      # First model's label goes under its curve, the next one's above, so they can't collide.
-                      xytext=(0, -12 if i == 0 else 10), textcoords="offset points", ha="center",
-                      va="top" if i == 0 else "bottom", fontsize=9, color=INK)
+                      xytext=(0, 10 if above else -12), textcoords="offset points", ha="center",
+                      va="bottom" if above else "top", fontsize=9, color=INK)
     left.plot([], [], marker="o", color=MUTED, linestyle="none", markersize=7, label="τ = 0 (default)")
     left.plot([], [], marker="D", color=MUTED, linestyle="none", markersize=7, label="best τ")
     left.legend(frameon=False, fontsize=9, loc="lower center", ncol=2)
@@ -245,6 +249,8 @@ def main() -> int:
     parser.add_argument("--tau-min", type=float, default=-8.0)
     parser.add_argument("--tau-max", type=float, default=8.0)
     parser.add_argument("--tau-step", type=float, default=0.25)
+    parser.add_argument("--suffix", default="",
+                        help="added to the output file names, e.g. _three_models, so earlier results are kept")
     args = parser.parse_args()
 
     from datasets import load_dataset
@@ -271,9 +277,10 @@ def main() -> int:
         print_report(labels[name], analysis)
 
     out = {"dataset": f"{cfg.data.dataset_name} (validation)", "tau_grid_step": args.tau_step, "models": analyses}
-    (results / "threshold_sweep.json").write_text(json.dumps(out, indent=1) + "\n", encoding="utf-8")
-    plot_sweep(analyses, labels, results / "threshold_sweep.png")
-    print(f"\nSaved {results / 'threshold_sweep.json'} and {results / 'threshold_sweep.png'}")
+    json_path, png_path = results / f"threshold_sweep{args.suffix}.json", results / f"threshold_sweep{args.suffix}.png"
+    json_path.write_text(json.dumps(out, indent=1) + "\n", encoding="utf-8")
+    plot_sweep(analyses, labels, png_path)
+    print(f"\nSaved {json_path} and {png_path}")
     return 0
 
 

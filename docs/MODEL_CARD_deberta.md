@@ -112,14 +112,19 @@ training loss fell from 5.22 to about 0.5. All settings are in `configs/deberta.
 
 - **It copies, it does not reason.** The answer is always one continuous piece of the passage. Questions
   whose answer has to be put together from several sentences are beyond it.
-- **No detailed error analysis yet.** The breakdown by question type and answer length that was done for the
-  DistilBERT model has not been repeated for this one, and the no-answer threshold has not been tuned.
+- **Unanswerable questions are still the main weakness.** 45% of its 1,797 errors on the dev set are answers
+  to unanswerable questions (811, against 1,081 for RoBERTa), and "why" questions are the hardest kind
+  (76 F1 on answerable "why" questions, against 94 for "when").
+- **The default threshold is slightly too eager.** Requiring the best answer to beat "no answer" by about 1.9
+  (a no-answer threshold of −1.9) raises F1 from 87.69 to 88.33, chosen and scored on different halves of the
+  dev set. The pipeline above does not apply a threshold.
 - **Long documents need care.** It reads at most 384 tokens at a time; longer texts are split into
   overlapping windows, which was shown to lower accuracy for the DistilBERT model and has not been measured
   for this one.
 - **English Wikipedia only.** It was trained on Wikipedia paragraphs and has not been tested on other kinds
   of text or other languages.
-- **Bigger and slower than the alternatives above** (735 MB on disk); its CPU speed has not been measured.
+- **Bigger and slower than the alternatives above:** 735 MB, and a median of 85 ms per question on an Apple
+  M2 laptop CPU, against 53 ms for `deepset/roberta-base-squad2` and 27 ms for the DistilBERT model.
 - Do not use it where a wrong answer has consequences (medical, legal, financial) without a person checking.
 
 ## Licences

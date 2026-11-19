@@ -183,6 +183,8 @@ def main() -> int:
     parser.add_argument("--results-dir", default="results")
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--cpu", action="store_true")
+    parser.add_argument("--suffix", default="",
+                        help="added to the output file name, e.g. _deberta-v3, so earlier results are kept")
     args = parser.parse_args()
 
     from datasets import load_dataset
@@ -208,7 +210,7 @@ def main() -> int:
 
     out = {"model": args.model, "dataset": f"{cfg.data.dataset_name} (validation)", "device": str(device),
            "null_threshold": cfg.postprocessing.null_threshold, "articles": articles}
-    path = results / "long_documents.json"
+    path = results / f"long_documents{args.suffix}.json"
     path.write_text(json.dumps(out, indent=1) + "\n", encoding="utf-8")
     print("\nSaved", path)
     return 0

@@ -119,8 +119,10 @@ training loss fell from 5.22 to about 0.5. All settings are in `configs/deberta.
   (a no-answer threshold of −1.9) raises F1 from 87.69 to 88.33, chosen and scored on different halves of the
   dev set. The pipeline above does not apply a threshold.
 - **Long documents need care.** It reads at most 384 tokens at a time; longer texts are split into
-  overlapping windows, which was shown to lower accuracy for the DistilBERT model and has not been measured
-  for this one.
+  overlapping windows. On three whole dev articles (12 to 26 windows per question), F1 fell from 91.6 / 85.8 /
+  80.9 with the right paragraph to 86.4 / 73.5 / 73.5 when picking the window whose answer beats its own
+  "no answer" score by the most, still above our DistilBERT given the right paragraph (70.6 / 60.1 / 59.3).
+  The no-answer threshold needs re-tuning for long texts.
 - **English Wikipedia only.** It was trained on Wikipedia paragraphs and has not been tested on other kinds
   of text or other languages.
 - **Bigger and slower than the alternatives above:** 735 MB, and a median of 85 ms per question on an Apple

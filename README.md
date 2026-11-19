@@ -161,6 +161,25 @@ the **whole document**, which the model reads in overlapping windows. F1 at τ =
 One caveat: a question that is unanswerable from its paragraph may be answerable elsewhere in the article,
 so the scores on unanswerable questions are a lower bound. Numbers are in `results/long_documents.json`.
 
+**DeBERTa-v3 on the same three articles** (experiment 1; `results/long_documents_deberta-v3.json`). F1 at
+τ = 0, per-window rule (the one the demo uses), with DistilBERT's numbers from the table above:
+
+| Article | DistilBERT, right paragraph | DistilBERT, whole article | DeBERTa-v3, right paragraph | DeBERTa-v3, whole article | DeBERTa-v3, unanswerable questions (whole article) |
+| --- | --- | --- | --- | --- | --- |
+| Amazon rainforest | 70.6 | 62.0 (−8.6) | 91.6 | 86.4 (−5.2) | 78.2 (DistilBERT: 41.6) |
+| Normans | 60.1 | 44.0 (−16.1) | 85.8 | 73.5 (−12.3) | 67.0 (DistilBERT: 26.8) |
+| Oxygen | 59.3 | 47.7 (−11.6) | 80.9 | 73.5 (−7.4) | 63.8 (DistilBERT: 39.1) |
+
+- **DeBERTa reading the whole article beats DistilBERT given the right paragraph**, on all three articles.
+- **It loses less when it has to find the place**: 5 to 12 F1 points instead of 9 to 16.
+- **It still says "no answer"**: on unanswerable questions it keeps 64 to 78 F1 over the whole article,
+  where DistilBERT falls to 27 to 42 with the same rule (7 to 13 with the global rule).
+- **It finds the right paragraph more often**: 87% to 95% of its answers, against 70% to 88% for DistilBERT.
+- **The threshold still needs re-tuning on long articles**, but less: the best τ is −1.3 to −5.4 (DistilBERT:
+  −2.9 to −8.9). Tuned on the same questions (optimistic), F1 reaches 88.5, 83.8 and 75.9.
+- **It is slow on long documents**: 2.6 to 5.5 seconds per question on this Mac's GPU (`mps`), because a
+  question about Oxygen means reading 26 windows.
+
 ## Repository layout
 
 ```text
@@ -237,6 +256,7 @@ qa-experiments/
     ├── threshold_sweep_three_models.{json,png}  # experiment 1: threshold sweep, all three models
     ├── error_breakdown_three_models.json     # experiment 1: error analysis, all three models
     ├── error_analysis_three_models.png
+    ├── long_documents_deberta-v3.json        # experiment 1: DeBERTa-v3 on whole articles
     └── error_sample_three_models.csv         # experiment 1: 60 DeBERTa errors to label by hand
 ```
 

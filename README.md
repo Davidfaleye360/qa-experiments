@@ -19,7 +19,7 @@ dev set. Most of what follows in this README describes that starting point.
 
 | Experiment | Idea | Status |
 | --- | --- | --- |
-| A stronger pretrained model | Fine-tune `microsoft/deberta-v3-base` with the same pipeline. Its authors report about 88 F1 on SQuAD 2.0. Settings: [configs/deberta.yaml](configs/deberta.yaml); run it with [notebooks/05_train_deberta_colab.ipynb](https://colab.research.google.com/github/Davidfaleye360/qa-experiments/blob/main/notebooks/05_train_deberta_colab.ipynb). | Ready to train |
+| A stronger pretrained model | Fine-tune `microsoft/deberta-v3-base` with the same pipeline. Its authors report about 88 F1 on SQuAD 2.0. Settings: [configs/deberta.yaml](configs/deberta.yaml); run it with [notebooks/05_train_deberta_colab.ipynb](https://colab.research.google.com/github/Davidfaleye360/qa-experiments/blob/main/notebooks/05_train_deberta_colab.ipynb). | **Done: 84.86 EM / 87.69 F1, beats RoBERTa by 4.8 F1.** Model: [Ingsyling/deberta-v3-squad2](https://huggingface.co/Ingsyling/deberta-v3-squad2) |
 | Distillation | Train the small DistilBERT to copy RoBERTa's scores, not only the correct answers, to close part of the gap at the same size. | Idea |
 
 Models trained here get their own names on the Hugging Face Hub, so the group's
@@ -48,8 +48,15 @@ CPU time is the median time to answer one dev question end to end on an Apple M2
 | --- | --- | --- | --- | --- | --- | --- |
 | DistilBERT (ours) | 64.14 | 67.38 | 72.17 | 62.59 | 266 MB (66 M parameters) | 31 ms |
 | RoBERTa (deepset) | 79.90 | 82.91 | 84.01 | 81.82 | 496 MB (124 M parameters) | 57 ms |
+| DeBERTa-v3 (ours, experiment 1) | **84.86** | **87.69** | **89.02** | **86.36** | 735 MB (184 M parameters) | not measured |
 
 Our model is 15.5 F1 points behind RoBERTa at 54% of the size and 1.8 times the speed.
+
+Experiment 1, [Ingsyling/deberta-v3-squad2](https://huggingface.co/Ingsyling/deberta-v3-squad2), is
+`microsoft/deberta-v3-base` fine-tuned with the same pipeline ([configs/deberta.yaml](configs/deberta.yaml),
+2 epochs, 1 h 39 min on a free Colab T4). It is 4.8 F1 points ahead of RoBERTa (82.91 → 87.69), better on both
+answerable (+5.0) and unanswerable (+4.5) questions, and 20.3 points ahead of our DistilBERT. Its authors report
+about 88 F1. Scoring the uploaded model on an M2 laptop gave exactly the same numbers as the Colab run.
 
 Fine-tuning is what gets it there: the same `distilbert-base-uncased` before our training scores 1.2 EM /
 4.6 F1 on the first 1,000 dev questions, against 64.2 / 67.7 for our model on the same questions.

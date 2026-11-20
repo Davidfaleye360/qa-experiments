@@ -25,6 +25,9 @@ dev set. Most of what follows in this README describes that starting point.
 Models trained here get their own names on the Hugging Face Hub, so the group's
 [Ingsyling/distilbert-squad2](https://huggingface.co/Ingsyling/distilbert-squad2) stays unchanged.
 
+**Slides:** [slides/experiments.pdf](slides/experiments.pdf) presents both experiments in 15 slides (unofficial,
+not part of the course project).
+
 ## Try the demo
 
 The demo is not hosted permanently, but anyone can start it in about two minutes:
@@ -209,7 +212,8 @@ qa-experiments/
 │   ├── presentation.pdf        # the same slides as a PDF, for reading on GitHub
 │   ├── build_slides.js         # how the deck was generated from results/
 │   ├── qr_demo.png             # QR code to this README's "Try the demo" section (first slide)
-│   └── qr_colab.png            # QR code that opens the demo notebook in Colab (last slide)
+│   ├── qr_colab.png            # QR code that opens the demo notebook in Colab (last slide)
+│   └── experiments.pdf         # unofficial slides on experiments 1 and 2 (not the course deck)
 ├── docs/
 │   ├── PROJECT_HISTORY.md      # why each design decision was made, and every result in order
 │   └── MODEL_CARD.md           # the description shown on the model's Hugging Face page
